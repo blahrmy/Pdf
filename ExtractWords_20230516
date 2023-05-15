@@ -1,0 +1,56 @@
+$ pip install pdfminer.six
+
+import os
+import re
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.converter import TextConverter
+from pdfminer.layout import LAParams
+from pdfminer.pdfpage import PDFPage
+from io import StringIO
+
+pdf_folder_path = os.getcwd() + '/' + 'pdf' # 現在のフォルダのパスを取得
+text_folder_path = os.getcwd() + '/' + 'text' # pathの表記がmac仕様。windowsの場合は、'/'を'\'に修正する。
+
+os.makedirs(text_folder_path, exist_ok=True)
+pdf_file_name = os.listdir(pdf_folder_path)
+
+# nameがpdf（末尾が.pdf）の場合はTrue、それ以外はFalseを返す関数
+def pdf_checker(name):
+    pdf_regex = re.compile(r'.+\.pdf')
+    if pdf_regex.search(str(name)):
+        return True
+    else:
+        return False
+
+# pdfをtxtに変換する関数（ここについて僕はあんまりわかりません）
+# https://qiita.com/korkewriya/items/72de38fc506ab37b4f2d より
+def convert_pdf_to_txt(name, txtname, buf=True):
+    rsrcmgr = PDFResourceManager()
+    if buf:
+        outfp = StringIO()
+    else:
+        outfp = file(txtname, 'w')
+    codec = 'utf-8'
+    laparams = LAParams()
+    laparams.detect_vertical = True
+    device = TextConverter(rsrcmgr, outfp, codec=codec, laparams=laparams)
+
+    fp = open(pdf_folder_path + '/' + name, 'rb') # nameを開く。
+    interpreter = PDFPageInterpreter(rsrcmgr, device)
+    for page in PDFPage.get_pages(fp):
+        interpreter.process_page(page)
+    fp.close()
+    device.close()
+    if buf:
+        text = outfp.getvalue()
+        make_new_text_file = open(text_folder_path + '/' + name + '.txt', 'w') # name.txtを開く。
+        make_new_text_file.write(text)
+        make_new_text_file.close()
+    outfp.close()
+
+# 各pdfをそれぞれtxtに変換。
+for name in pdf_file_name:
+    if pdf_checker(name):
+        convert_pdf_to_txt(name, name + '.txt')  # pdf_checkerを使い、True（末尾が.pdfの場合）は変換に進む。
+    else:
+        pass                                    # pdfファイルでない場合にはpass
